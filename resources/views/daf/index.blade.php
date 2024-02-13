@@ -1,0 +1,874 @@
+@extends('layouts.default')
+
+@section('title', 'Asignación de DAF')
+
+@push('css')
+
+<link href="{{ asset('/assets/plugins/datatables.net-bs4/css/dataTables.bootstrap4.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/gritter/css/jquery.gritter.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/smartwizard/dist/css/smart_wizard.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker3.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/ion-rangeslider/css/ion.rangeSlider.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-timepicker/css/bootstrap-timepicker.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/@danielfarrell/bootstrap-combobox/css/bootstrap-combobox.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-select/dist/css/bootstrap-select.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/tag-it/css/jquery.tagit.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-daterangepicker/daterangepicker.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/select2/dist/css/select2.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/bootstrap-colorpalette/css/bootstrap-colorpalette.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/jquery-simplecolorpicker/jquery.simplecolorpicker.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/jquery-simplecolorpicker/jquery.simplecolorpicker-fontawesome.css')}}" rel="stylesheet" />
+<link href="{{ asset('/assets/plugins/jquery-simplecolorpicker/jquery.simplecolorpicker-glyphicons.css')}}" rel="stylesheet" />
+
+
+@endpush
+
+@section('content')
+    
+    
+    <h1 class="page-header">Lista de Solicitud de Pedidos</h1>
+        
+    <div class="col-xl-12">
+        <div>
+            <form class="form-horizontal" id="filtrar" data-parsley-validate="true" name="demo-form">
+                <div class="col-md-9">
+                    <h4 class="panel-title">Filtrar por Estado</h4>
+                    <div class="checkbox checkbox-css">
+                        <input type="checkbox" name="ped_pendiente" id="ped_pendiente" value="1" onchange="pendientes(this.value);"/>
+                        <label for="ped_pendiente">Pedidos Pendientes</label>
+                    </div>
+                    <div class="checkbox checkbox-css is-valid">
+                        <input type="checkbox" name="ped_aprobado" id="ped_aprobado" value="2" onchange="aprobados(this.value);"/>
+                        <label for="ped_aprobado">Pedidos Aprobados</label>
+                    </div>
+                    <div class="checkbox checkbox-css is-invalid">
+                        <input type="checkbox" name="ped_rechazado" id="ped_rechazado" value="3" onchange="rechazados(this.value);"/>
+                        <label for="ped_rechazado">Pedidos Rechazados</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <br>
+        
+        <div class="panel panel-inverse">
+            
+            <div class="panel-heading">
+                <h4 class="panel-title">LISTA DE SOLICITUD DE PEDIDOS</h4>
+            </div>
+            
+            
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table id="lista" class="table table-striped table-bordered table-td-valign-middle">
+                        <thead>
+                            <tr>
+                                <th width="1%">Nº</th>
+                                <th class="text-nowrap">Nº PEDIDO</th>
+                                <th class="text-nowrap">UNIDAD ADMINISTRATIVA</th>
+                                <th class="text-nowrap">ESTADO</th>
+                                <th class="text-nowrap" data-orderable="false"> &nbsp; &nbsp; ACCIONES &nbsp; &nbsp; </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+                
+        <div class="modal" id="modal-without-animation" role="dialog" style="overflow-y: scroll">
+            <div class="modal-dialog" style="max-width: 60% !important;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Vista de Artículos del Pedido</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    </div>
+                    <div class="modal-body">
+
+                        <form id="guardar_datos" method="POST">
+                           @csrf
+                           
+                            <div class="table-responsive">
+                                <table id="lista2" class="table table-striped table-bordered table-td-valign-middle">
+                                    <thead>
+                                        <tr>
+                                            <th width="1%">Nº</th>
+                                            <th class="text-nowrap">ARTICULO (DESCRIPCION)</th>
+                                            <th class="text-nowrap">CANTIDAD SOLICITADA</th>
+                                            <th class="text-nowrap">CANTIDAD APROBADA</th>
+                                            <th class="text-nowrap">ARCHIVO</th>
+                                            <th class="text-nowrap" data-orderable="false"> ACCIONES </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <br>
+                            <div>
+                                <button class="btn btn-success float-right col-lg-2" id="guardar" name="guardar">Guardar</button>
+                            </div>
+                        </form>
+                        <form id="pedido_rechazado" method="POST">
+                            <div class="form-horizontal">
+                                <input type="hidden" id="no_rechazo" name="no_rechazo" value="">
+                                
+                                <div id="mostrar_rechazo">
+                                    <div class="form-group row m-b-12">
+                                        <label class="col-lg-2 text-lg-right col-form-label">Motivo de Rechazo <span class="text-danger">*</span></label>
+                                        <div class="col-lg-12 col-xl-10">
+                                            <div class="row row-space-12">
+                                                <div class="col-8">
+                                                    <textarea class="form-control formulario1" id="rechazo" name="rechazo" rows="2" minlength="1" maxlength="250" placeholder="CANTIDAD MÁXIMO DE CARACTERES: 250" data-size="10" data-live-search="true" onkeyup="convertirEnMayusculas(this)" onkeypress="return solo_letras_numeros(event)" required></textarea>
+                                                </div>
+                                                <div class="col-4">
+                                                    <a onclick="anular_pedido_articulo()" id="anular_pedido" name="anular_pedido" class="btn btn-danger" style="color: white"><abbr title="Anular el Pedido rechazando todos los Artículos">Rechazar Pedido</abbr></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </form>
+                        
+                    </div>
+                    <div class="modal-footer">
+                        <a href="javascript:;" class="btn btn-white" data-dismiss="modal">Cerrar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="modal" id="modal-without-animation2" role="dialog" style="overflow-y: scroll">
+            <div class="modal-dialog" style="max-width: 60% !important;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Artículos del Pedido</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editar_datos" method="POST">
+                           @csrf
+                           
+                            <div class="table-responsive">
+                                <table id="lista3" class="table table-striped table-bordered table-td-valign-middle">
+                                    <thead>
+                                        <tr>
+                                            <th width="1%">Nº</th>
+                                            <th class="text-nowrap">ARTICULO (DESCRIPCION)</th>
+                                            <th class="text-nowrap">CANTIDAD SOLICITADA</th>
+                                            <th class="text-nowrap">CANTIDAD APROBADA</th>
+                                            <th class="text-nowrap">ARCHIVO</th>
+                                            <th class="text-nowrap" data-orderable="false"> ACCIONES </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <br>
+                            <div>
+                                <button class="btn btn-success float-right col-lg-2" id="actualiza" name="actualiza">Actualizar</button>
+                            </div>
+                        </form>
+                        <form id="epedido_rechazado" method="POST">
+                            <div class="form-horizontal">
+                                <input type="hidden" id="eno_rechazo" name="eno_rechazo" value="">
+                                
+                                <div id="emostrar_rechazo">
+                                    <div class="form-group row m-b-12">
+                                        <label class="col-lg-2 text-lg-right col-form-label">Motivo de Rechazo <span class="text-danger">*</span></label>
+                                        <div class="col-lg-12 col-xl-10">
+                                            <div class="row row-space-12">
+                                                <div class="col-8">
+                                                    <textarea class="form-control formulario1" id="erechazo" name="erechazo" rows="2" minlength="1" maxlength="250" placeholder="CANTIDAD MÁXIMO DE CARACTERES: 250" data-size="10" data-live-search="true" onkeyup="convertirEnMayusculas(this)" onkeypress="return solo_letras_numeros(event)" required></textarea>
+                                                </div>
+                                                <div class="col-4">
+                                                    <a onclick="eanular_pedido_articulo()" id="eanular_pedido" name="eanular_pedido" class="btn btn-danger" style="color: white"><abbr title="Anular el Pedido rechazando todos los Artículos">Rechazar Pedido</abbr></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <a href="javascript:;" class="btn btn-white" data-dismiss="modal">Cerrar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    
+    <a href="javascript:;" class="btn btn-icon btn-circle btn-success btn-scroll-to-top fade" data-click="scroll-top"><i class="fa fa-angle-up"></i></a>
+    
+ 
+@endsection
+
+@push('scripts')
+
+<script>
+    function anular_pedido_articulo(){
+        let dato = $('#no_rechazo').val();
+        let dato2 = $('#rechazo').val();
+        $.ajax({
+            type:'POST',
+            url:"{{route('anular.pedido.daf')}}",
+            data:{ _token: '{{ csrf_token ()}}', no:dato, obs:dato2},
+            success:function(html){
+                if(html == 1){
+                    $('#modal-without-animation').modal('hide');
+                    $('#lista').DataTable().ajax.reload();
+                    swal({ icon: "success", title: "Se ha rechazado el Pedido"});
+                }
+                else if(html == 2) swal({ icon: "warning", title: "Debe llenar el Motivo de Rechazo del Pedido"});
+                else if(html == 3) swal({ icon: "warning", title: "El Motivo del Rechazo debe empezar con una Letra del Abecedario"});
+                else{swal({ icon: "error", title: "Ha ocurrido un error"});}
+            }
+            
+        });
+    }
+
+    function eanular_pedido_articulo(){
+        let dato = $('#eno_rechazo').val();
+        let dato2 = $('#erechazo').val();
+        $.ajax({
+            type:'POST',
+            url:"{{route('anular.pedido.daf')}}",
+            data:{ _token: '{{ csrf_token ()}}', no:dato, obs:dato2},
+            success:function(html){
+                if(html == 1){
+                    $('#modal-without-animation2').modal('hide');
+                    $('#lista').DataTable().ajax.reload();
+                    swal({ icon: "success", title: "Se ha actualizado el Pedido"});
+                }
+                else if(html == 2) swal({ icon: "warning", title: "Debe llenar el Motivo de Rechazo del Pedido"});
+                else if(html == 3) swal({ icon: "warning", title: "El Motivo del Rechazo debe empezar con una Letra del Abecedario"});
+                else{swal({ icon: "error", title: "Ha ocurrido un error"});}
+            }
+            
+        });
+    }
+</script>
+
+
+<script>
+    function imprimir_pedido(dato){
+        $.ajax({
+            type:'POST',
+            url:'{{ route('ver.imprimir.pedido.daf') }}',
+            data:{ _token: '{{ csrf_token ()}}', no_pedido:dato},
+            success:function(html){
+                window.open(html, '_blank');
+            }
+            
+        });
+    }
+</script>
+
+
+<script>
+    function presionar(boton){
+        let x = document.getElementById(boton.id);
+        if(boton.classList[1] == 'btn-danger'){
+            boton.style.color = 'White';
+            boton.classList.remove('btn-danger');
+            boton.classList.toggle('btn-success');
+            x.getElementsByTagName('input')[0].value = "R";
+            x.getElementsByTagName('i')[0].innerText = "Aprobar";
+            x.getElementsByTagName('i')[0].classList = "fas fa-check-circle";
+            x.getElementsByTagName('abbr')[0].title = "Aprobar";
+        }
+        else{
+            boton.style.color = 'White';
+            boton.classList.remove('btn-success');
+            boton.classList.toggle('btn-danger');
+            x.getElementsByTagName('input')[0].value = "A";
+            x.getElementsByTagName('i')[0].innerText = "Anular";
+            x.getElementsByTagName('i')[0].classList = "fas fa-times-circle";
+            x.getElementsByTagName('abbr')[0].title = "Anular";
+        }
+    }
+
+    function epresionar(boton){
+        let x = document.getElementById(boton.id);
+        if(boton.classList[1] == 'btn-danger'){
+            boton.style.color = 'White';
+            boton.classList.remove('btn-danger');
+            boton.classList.toggle('btn-success');
+            x.getElementsByTagName('input')[0].value = "R";
+            x.getElementsByTagName('i')[0].innerText = "Aprobar";
+            x.getElementsByTagName('i')[0].classList = "fas fa-check-circle";
+            x.getElementsByTagName('abbr')[0].title = "Aprobar";
+        }
+        else{
+            boton.style.color = 'White';
+            boton.classList.remove('btn-success');
+            boton.classList.toggle('btn-danger');
+            x.getElementsByTagName('input')[0].value = "A";
+            x.getElementsByTagName('i')[0].innerText = "Anular";
+            x.getElementsByTagName('i')[0].classList = "fas fa-times-circle";
+            x.getElementsByTagName('abbr')[0].title = "Anular";
+        }
+    }
+</script>
+
+
+<script>
+    let valor1=0, valor2=0, valor3=0;
+    function pendientes(dato){
+        let dp = dato;
+        if(ped_pendiente.checked) valor1=dp;
+        else valor1=0;
+        filtrar(valor1, valor2, valor3);
+    }
+
+    function aprobados(dato){
+        let dp = dato;
+        if(ped_aprobado.checked) valor2=dp;
+        else valor2=0;
+        filtrar(valor1, valor2, valor3);
+    }
+
+    function rechazados(dato){
+        let dp = dato;
+        if(ped_rechazado.checked) valor3=dp;
+        else valor3=0;
+        filtrar(valor1, valor2, valor3);
+    }
+</script>
+
+
+<script>
+    $(function(){
+        $('#guardar_datos').on("submit", function(e){
+            e.preventDefault();
+                var f=$(this);
+                var formData = new FormData(document.getElementById("guardar_datos"));
+                
+                formData.append("dato", "valor");
+                $.ajax({
+                    url:"{{route('guardar.datos.daf')}}",
+                    type:"POST",
+                    datatype: "html",
+                    data: formData,
+                    cache:false,
+                    contentType:false,
+                    processData:false
+                }).done(function(html){
+                    if(html[0] == 1){
+                        $('#lista').DataTable().ajax.reload();
+                        swal({ icon: "success", title: "Se ha aprobado el Pedido"});
+                        $('#modal-without-animation').modal('hide');
+                    }
+                    else if(html[0] == 4){
+                        swal({ icon: "warning", title: "Debe llenar el Motivo de Rechazo del Pedido y presionar el botón de Rechazar Pedido"});
+                    }
+                    else if(html[0] == 2){
+                        swal({ icon: "warning", title: "La cantidad de la fila " + html[1] + " debe ser menor o igual a la cantidad pedida y distinto de 0"});
+                    }
+                    else{swal({ icon: "error", title: "Ha ocurrido un error"});}
+                });
+        });
+    });
+
+    $(function(){
+        $('#editar_datos').on("submit", function(e){
+            e.preventDefault();
+                var f=$(this);
+                var formData = new FormData(document.getElementById("editar_datos"));
+                
+                formData.append("dato", "valor");
+                $.ajax({
+                    url:"{{route('editar.datos.daf')}}",
+                    type:"POST",
+                    datatype: "html",
+                    data: formData,
+                    cache:false,
+                    contentType:false,
+                    processData:false
+                }).done(function(html){
+                    if(html[0] == 1){
+                        $('#lista').DataTable().ajax.reload();
+                        $('#modal-without-animation2').modal('hide');
+                        swal({ icon: "success", title: "Se han actualizado los datos"});
+                    }
+                    else if(html[0] == 4){
+                        swal({ icon: "warning", title: "Debe llenar el Motivo de Rechazo del Pedido y presionar el botón de Rechazar Pedido"});
+                    }
+                    else if(html[0] == 2){
+                        swal({ icon: "warning", title: "La cantidad en la fila "+html[1]+" debe ser menor o igual a la cantidad pedida y distinto de 0"});
+                    }
+                    else{swal({ icon: "error", title: "Ha ocurrido un error"});}
+                });
+        });
+    });
+</script>
+
+
+<script>
+    $(document).ready( function () {
+        $('#lista').DataTable({
+            pageLength:25,
+            "ajax": {
+                url: "{{route('lista.pedido.pendiente.daf')}}",
+                type: 'GET'
+            },
+            columns: [
+                        {data:'numero'  , name: 'numero'}, 
+                        {data: 'no_pedido' , name: 'no_pedido'}, 
+                        {data: 'unidad' , name: 'unidad'},
+                        {data: 'estado' , 
+                            render: function(name){
+                                name: 'estado';
+                                if(name=="PENDIENTE"){
+                                    return '<abbr title="Pedido Pendiente"><button class="btn btn-warning"><i class="fab fa-product-hunt"></i></button>&nbsp;</abbr>';
+                                }
+                                if(name=="APROBADO"){
+                                    return '<abbr title="Pedido Aprobado"><button class="btn btn-success"><i class="fas fa-check-circle"></i></button>&nbsp;</abbr>';
+                                }
+                                if(name=="RECHAZADO"){
+                                    return '<abbr title="Pedido Rechazado"><button class="btn btn-danger"><i class="fas fa-times-circle"></i></button>&nbsp;</abbr>';
+                                }
+                            }
+                        },
+                        {data: 'boton', name: 'boton'}
+            ],
+            error: function(jqXHR, textStatus, errorThrown){
+                $("#lista").DataTable().clear().draw();
+            },
+            dom: '<"dataTables_wrapper dt-bootstrap"<"row"<"col-xl-7 d-block d-sm-flex d-xl-block justify-content-center"<"d-block d-lg-inline-flex mr-0 mr-sm-3"l><"d-block d-lg-inline-flex"B>><"col-xl-5 d-flex d-xl-block justify-content-center"fr>>t<"row"<"col-sm-5"i><"col-sm-7"p>>>',
+            language: {
+                "url": "{{asset('assets')}}/plugins/datatables.net/spanish.json"
+            },
+            responsive: false,
+            serverSide: false,
+            processing: true,
+            buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-sm' },
+            { extend: 'csv', className: 'btn-sm' },
+            { extend: 'pdf', className: 'btn-sm' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-sm' }
+            ],
+            columnDefs: [
+                { orderable: false, targets: 3 },
+                { orderable: false, targets: 4 }
+            ],
+        });
+        
+    });
+</script>
+
+
+<script>
+    function ver(dato){
+        $('#lista2').DataTable().clear().destroy();
+        let no=dato;
+        $('#rechazo').val('');
+        $('#guardar').show();
+        $.ajax({
+            type:'POST',
+            url:"{{ route('listar.pedido.articulo.pendiente.observacion.daf') }}",
+            data:{ _token: '{{ csrf_token ()}}', no:no},
+            success:function(html){
+                
+                $('#no_rechazo').val(html[0]);
+                if(html[1] != ""){
+                    $('#rechazo').val(html[1]);
+                }
+                if(html[2] == "PENDIENTE"){
+                    $('#mostrar_rechazo').show();
+                }
+                else{
+                    $('#mostrar_rechazo').hide();
+                }
+                
+            }
+            
+        });
+
+        let i=0;
+        $('#lista2').DataTable({
+            pageLength:50,
+            "ajax": {
+                type:'POST',
+                url:'{{ route('listar.pedido.articulo.pendiente.daf') }}',
+                data:{ _token: '{{ csrf_token ()}}', no:no}
+            },
+            columns: [
+                        {data: 'numero'  , name: 'numero'},
+                        {data: 'articulo' , name: 'articulo'},
+                        {data: 'cantidad' , name: 'cantidad'},
+                        {data: 'boton', name:'boton'},
+                        {data: 'archivo' , 
+                            render: function(name){
+                                name: 'archivo';
+                                if(name!="VACIO"){
+                                    return '<abbr title="Ver Archivo"><a href="'+name+'" target="_blank" class="btn btn-primary"><i class="fas fa-file-pdf"></i></a> &nbsp;</abbr>';
+                                }
+                                else return "";
+                            }
+                        },
+                        {data: 'val', 
+                            render: function(name){
+                                i++;
+                                return '<a id="anular'+i+'" name="anular[]" onclick="presionar(this)" class="btn btn-danger" style="color: white"><input type="hidden" value="A" name="valor[]" id="valor"><abbr title="Anular"><i class="fas fa-times-circle">Anular</i></abbr></a>';
+                            }
+                        },
+                        
+                        
+            ],
+            error: function(jqXHR, textStatus, errorThrown){
+                $("#lista2").DataTable().clear().draw();
+            },
+            dom: '<"dataTables_wrapper dt-bootstrap"<"row"<"col-xl-7 d-block d-sm-flex d-xl-block justify-content-center"<"d-block d-lg-inline-flex mr-0 mr-sm-3"l><"d-block d-lg-inline-flex"B>><"col-xl-5 d-flex d-xl-block justify-content-center"fr>>t<"row"<"col-sm-5"i><"col-sm-7"p>>>',
+            language: {
+                "url": "{{asset('assets')}}/plugins/datatables.net/spanish.json"
+            },
+            responsive: false,
+            serverSide: false,
+            processing: true,
+            buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-sm' },
+            { extend: 'csv', className: 'btn-sm' },
+            { extend: 'pdf', className: 'btn-sm' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-sm' }
+            ],
+            columnDefs: [
+                { orderable: false, targets: 4 },
+                { orderable: false, targets: 5 }
+            ],
+        });
+        
+    }
+    
+</script>
+
+
+<script>
+    function editar(dato){
+        $('#lista3').DataTable().clear().destroy();
+        let no=dato;
+        $('#erechazo').val('');
+        $.ajax({
+            type:'POST',
+            url:"{{ route('listar.pedido.articulo.pendiente.observacion.daf') }}",
+            data:{ _token: '{{ csrf_token ()}}', no:no},
+            success:function(html){
+                
+                $('#eno_rechazo').val(html[0]);
+                if(html[1] != ""){
+                    $('#erechazo').val(html[1]);
+                }
+                if(html[2] == "PENDIENTE"){
+                    $('#emostrar_rechazo').show();
+                }
+                else{
+                    $('#emostrar_rechazo').hide();
+                }
+                
+            }
+            
+        });
+
+        let i=0;
+        $('#lista3').DataTable({
+            pageLength:50,
+            "ajax": {
+                type:'POST',
+                url:'{{ route('listar.pedido.articulo.pendiente.daf') }}',
+                data:{ _token: '{{ csrf_token ()}}', no:no}
+            },
+            columns: [
+                        {data: 'numero'  , name: 'numero'},
+                        {data: 'articulo' , name: 'articulo'},
+                        {data: 'cantidad' , name: 'cantidad'},
+                        {data: 'boton', name:'boton'},
+                        {data: 'archivo' , 
+                            render: function(name){
+                                name: 'archivo';
+                                if(name!="VACIO"){
+                                    return '<abbr title="Ver Archivo"><a href="'+name+'" target="_blank" class="btn btn-primary"><i class="fas fa-file-pdf"></i></a> &nbsp;</abbr>';
+                                }
+                                else return "";
+                            }
+                        },
+                        {data: 'estado2', 
+                            render: function(name){
+                                name: 'estado2';
+                                const estado = name, est=estado.split("/");
+                                const est_aprob = est[0];
+                                const est_asign = est[1];
+                                i++;
+                                if(est_asign != "PENDIENTE"){
+                                    $('#actualiza').hide();
+                                    return '';
+                                }
+                                
+                                if(est_asign == "PENDIENTE"){
+                                    $('#actualiza').show();
+                                    if(est_aprob == "APROBADO"){
+
+                                        return '<a id="eanular'+i+'" name="eanular[]" onclick="epresionar(this)" class="btn btn-danger" style="color: white"><input type="hidden" value="A" name="evalor[]" id="evalor"><abbr title="Anular"><i class="fas fa-times-circle">Anular</i></abbr></a>';
+                                    }
+                                    if(est_aprob == "RECHAZADO"){
+                                        return '<a id="eanular'+i+'" name="eanular[]" onclick="epresionar(this)" class="btn btn-success" style="color: white"><input type="hidden" value="R" name="evalor[]" id="evalor"><abbr title="Aprobar"><i class="fas fa-check-circle">Aprobar</i></abbr></a>';
+                                    }
+                                }
+                            }
+                        },
+                        
+                        
+            ],
+            error: function(jqXHR, textStatus, errorThrown){
+                $("#lista3").DataTable().clear().draw();
+            },
+            dom: '<"dataTables_wrapper dt-bootstrap"<"row"<"col-xl-7 d-block d-sm-flex d-xl-block justify-content-center"<"d-block d-lg-inline-flex mr-0 mr-sm-3"l><"d-block d-lg-inline-flex"B>><"col-xl-5 d-flex d-xl-block justify-content-center"fr>>t<"row"<"col-sm-5"i><"col-sm-7"p>>>',
+            language: {
+                "url": "{{asset('assets')}}/plugins/datatables.net/spanish.json"
+            },
+            responsive: false,
+            serverSide: false,
+            processing: true,
+            buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-sm' },
+            { extend: 'csv', className: 'btn-sm' },
+            { extend: 'pdf', className: 'btn-sm' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-sm' }
+            ],
+            columnDefs: [
+                { orderable: false, targets: 4 },
+                { orderable: false, targets: 5 }
+            ],
+        });
+        
+    }
+    
+</script>
+
+
+<script>
+    function ver2(dato){
+        $('#lista2').DataTable().clear().destroy();
+        let no=dato;
+        $('#guardar').hide();
+        $('#rechazo').val('');
+        $.ajax({
+            type:'POST',
+            url:"{{ route('listar.pedido.articulo.pendiente.observacion.daf') }}",
+            data:{ _token: '{{ csrf_token ()}}', no:no},
+            success:function(html){
+                
+                $('#no_rechazo').val(html[0]);
+                if(html[1] != ""){
+                    $('#rechazo').val(html[1]);
+                }
+                if(html[2] == "PENDIENTE"){
+                    $('#mostrar_rechazo').show();
+                }
+                else{
+                    $('#mostrar_rechazo').hide();
+                }
+                
+            }
+            
+        });
+
+        $('#lista2').DataTable({
+            pageLength:50,
+            "ajax": {
+                type:'POST',
+                url:'{{ route('listar.pedido.articulo.pendiente.daf') }}',
+                data:{ _token: '{{ csrf_token ()}}', no:no}
+            },
+            columns: [
+                        {data: 'numero'  , name: 'numero'},
+                        {data: 'articulo' , name: 'articulo'},
+                        {data: 'cantidad' , name: 'cantidad'},
+                        {data: 'cant_aprob', name:'cant_aprob'},
+                        {data: 'archivo' , 
+                            render: function(name){
+                                name: 'archivo';
+                                if(name!="VACIO"){
+                                    return '<abbr title="Ver Archivo"><a href="'+name+'" target="_blank" class="btn btn-primary"><i class="fas fa-file-pdf"></i></a> &nbsp;</abbr>';
+                                }
+                                else return "";
+                            }
+                        },
+                        {data: 'val', name: 'val'},
+            ],
+            error: function(jqXHR, textStatus, errorThrown){
+                $("#lista2").DataTable().clear().draw();
+            },
+            dom: '<"dataTables_wrapper dt-bootstrap"<"row"<"col-xl-7 d-block d-sm-flex d-xl-block justify-content-center"<"d-block d-lg-inline-flex mr-0 mr-sm-3"l><"d-block d-lg-inline-flex"B>><"col-xl-5 d-flex d-xl-block justify-content-center"fr>>t<"row"<"col-sm-5"i><"col-sm-7"p>>>',
+            language: {
+                "url": "{{asset('assets')}}/plugins/datatables.net/spanish.json"
+            },
+            responsive: false,
+            serverSide: false,
+            processing: true,
+            buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-sm' },
+            { extend: 'csv', className: 'btn-sm' },
+            { extend: 'pdf', className: 'btn-sm' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-sm' }
+            ],
+            columnDefs: [
+                { orderable: false, targets: 4 },
+                { orderable: false, targets: 5 }
+            ],
+        });
+        
+    }
+    
+</script>
+
+
+<script>
+    function filtrar(dato1, dato2, dato3){
+        $('#lista'). DataTable().clear().destroy();
+        let est_ped1=dato1;
+        let est_ped2=dato2;
+        let est_ped3=dato3;
+        $('#lista').DataTable({
+            pageLength:25,
+            "ajax": {
+                type:'POST',
+                url:'{{ route('lista.pedido.valor.daf') }}',
+                data:{ _token: '{{ csrf_token ()}}', est_ped1:est_ped1, est_ped2:est_ped2, est_ped3:est_ped3}
+            },
+            columns: [
+                        {data:'numero'  , name: 'numero'}, 
+                        {data: 'no_pedido' , name: 'no_pedido'}, 
+                        {data: 'unidad' , name: 'unidad'},
+                        {data: 'estado' , 
+                            render: function(name){
+                                name: 'estado';
+                                if(name=="PENDIENTE"){
+                                    return '<abbr title="Pedido Pendiente"><button class="btn btn-warning"><i class="fab fa-product-hunt"></i></button>&nbsp;</abbr>';
+                                }
+                                if(name=="APROBADO"){
+                                    return '<abbr title="Pedido Aprobado"><button class="btn btn-success"><i class="fas fa-check-circle"></i></button>&nbsp;</abbr>';
+                                }
+                                if(name=="RECHAZADO"){
+                                    return '<abbr title="Pedido Rechazado"><button class="btn btn-danger"><i class="fas fa-times-circle"></i></button>&nbsp;</abbr>';
+                                }
+                            }
+                        },
+                        {data: 'boton', name: 'boton'}
+            ],
+            error: function(jqXHR, textStatus, errorThrown){
+                $("#lista").DataTable().clear().draw();
+            },
+            dom: '<"dataTables_wrapper dt-bootstrap"<"row"<"col-xl-7 d-block d-sm-flex d-xl-block justify-content-center"<"d-block d-lg-inline-flex mr-0 mr-sm-3"l><"d-block d-lg-inline-flex"B>><"col-xl-5 d-flex d-xl-block justify-content-center"fr>>t<"row"<"col-sm-5"i><"col-sm-7"p>>>',
+            language: {
+                "url": "{{asset('assets')}}/plugins/datatables.net/spanish.json"
+            },
+            responsive: false,
+            serverSide: false,
+            processing: true,
+            buttons: [
+            { extend: 'copy', text: 'Copiar', className: 'btn-sm' },
+            { extend: 'csv', className: 'btn-sm' },
+            { extend: 'pdf', className: 'btn-sm' },
+            { extend: 'print', text: 'Imprimir', className: 'btn-sm' }
+            ],
+            columnDefs: [
+                { orderable: false, targets: 3 },
+                { orderable: false, targets: 4 }
+            ],
+        });
+        
+    }
+    
+</script>
+
+
+<script>
+    function convertirEnMayusculas(e){
+        e.value = e.value.toUpperCase();
+    }
+
+    function solo_numeros (e) {
+        key=e.keyCode || e.which;
+        teclado=String.fromCharCode(key).toLowerCase();
+        letras_num="1234567890";
+        especiales="8-37-38-46-164";
+        teclado_especial=false;
+        for (var i in especiales) {
+            if (key==especiales[i]) {
+                teclado_especial=true;break;
+            }
+        }
+        if (letras_num.indexOf(teclado)==-1 && !teclado_especial) {
+            return false;
+        }
+    }
+
+    function solo_letras_numeros (e) {
+        key=e.keyCode || e.which;
+        teclado=String.fromCharCode(key).toLowerCase();
+        letras_num=" abcdefghijklmnñopqrstuvwxyz.1234567890";
+        especiales="8-37-38-46-164";
+        teclado_especial=false;
+        for (var i in especiales) {
+            if (key==especiales[i]) {
+                teclado_especial=true;break;
+            }
+        }
+        if (letras_num.indexOf(teclado)==-1 && !teclado_especial) {
+            return false;
+        }
+    }
+</script>
+
+
+
+<script src="{{ asset('/assets/plugins/parsleyjs/dist/parsley.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/highlight.js/highlight.min.js')}}"></script>
+<script src="{{ asset('/assets/js/demo/render.highlight.js')}}"></script>
+<script src="{{ asset('/assets/plugins/parsleyjs/dist/parsley.js')}}"></script>
+<script src="{{ asset('/assets/plugins/smartwizard/dist/js/jquery.smartWizard.js')}}"></script>
+<script src="{{ asset('/assets/js/demo/form-wizards-validation.demo.js')}}"></script>
+<script src="{{ asset('/assets/plugins/gritter/js/jquery.gritter.js')}}"></script>
+<script src="{{ asset('/assets/plugins/sweetalert/dist/sweetalert.min.js')}}"></script>
+<script src="{{ asset('/assets/js/demo/ui-modal-notification.demo.js')}}"></script>
+<script src="{{ asset('/assets/plugins/jquery-migrate/dist/jquery-migrate.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/moment/min/moment.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js')}}"></script>
+<script src="{{ asset('/assets/plugins/ion-rangeslider/js/ion.rangeSlider.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-colorpicker/dist/js/bootstrap-colorpicker.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/jquery.maskedinput/src/jquery.maskedinput.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-timepicker/js/bootstrap-timepicker.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/pwstrength-bootstrap/dist/pwstrength-bootstrap.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/@danielfarrell/bootstrap-combobox/js/bootstrap-combobox.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-select/dist/js/bootstrap-select.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/tag-it/js/tag-it.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-daterangepicker/daterangepicker.js')}}"></script>
+<script src="{{ asset('/assets/plugins/select2/dist/js/select2.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-show-password/dist/bootstrap-show-password.js')}}"></script>
+<script src="{{ asset('/assets/plugins/bootstrap-colorpalette/js/bootstrap-colorpalette.js')}}"></script>
+<script src="{{ asset('/assets/plugins/jquery-simplecolorpicker/jquery.simplecolorpicker.js')}}"></script>
+<script src="{{ asset('/assets/plugins/clipboard/dist/clipboard.min.js')}}"></script>
+<script src="{{ asset('/assets/js/demo/form-plugins.demo.js')}}"></script>
+<script src="{{ asset('/assets/plugins/datatables.net/js/jquery.dataTables.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/datatables.net-bs4/js/dataTables.bootstrap4.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/datatables.net-responsive/js/dataTables.responsive.min.js')}}"></script>
+<script src="{{ asset('/assets/plugins/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js')}}"></script>
+<script src="{{ asset('/assets/js/demo/table-manage-responsive.demo.js')}}"></script>
+
+
+@endpush
